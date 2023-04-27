@@ -1,0 +1,45 @@
+FROM almalinux:8
+
+MAINTAINER ab
+
+ADD https://google.com cache_bust
+
+# Prepare build directory
+RUN mkdir -p ~/rpmbuild/{RPMS/x86_64,BUILD,SOURCES,CODE};
+
+# Install dependencies
+RUN dnf -y install dnf-plugins-core; \
+dnf -y install epel-release; \
+dnf config-manager --set-enabled powertools; \
+dnf -y update; \
+dnf -y --nogpgcheck install openssl-devel; \
+dnf -y install automake make autoconf gcc gcc-c++ gettext-devel libpcap-devel libtool lua-devel pcre-devel zlib-devel gnupg2 rpmlint libxml2-devel cmake nano wget git createrepo yum-utils rpmlint libidn-devel pcre-devel python3-devel python2-devel rpmdevtools;
+
+# Prepare sources and make
+RUN cd ~/rpmbuild/BUILD; \
+wget https://github.com/andrewbx/build/archive/refs/heads/master.zip --no-check-certificate; \
+unzip master.zip build-master/nmap; \
+mv build-master/nmap .; rm -f master.zip build-master; \
+cp nmap/rpm/nmap-7.93.spec nmap/rpm/nmap.spec; \
+cp nmap/sources/7.93/* ~/rpmbuild/SOURCES/; \
+cd nmap; \
+patch -p1 ~/rpmbuild/SOURCES/nmap-4.03-mktemp.patch; \
+patch -p1 ~/rpmbuild/SOURCES/nmap-4.52-noms.patch; \
+patch -p1 ~/rpmbuild/SOURCES/ncat_reg_stdin.diff; \
+patch -p1 ~/rpmbuild/SOURCES/nmap-6.25-displayerror.patch; \
+patch -p1 ~/rpmbuild/SOURCES/nmap_resolve_config.patch; \
+patch -p1 ~/rpmbuild/SOURCES/nmap-7.93-openssl-1.1-build.patch; \
+cd ~/rpmbuild/BUILD; \
+rpmbuild -ba nmap/rpm/nmap.spec;
+
+# RPMlint filters
+RUN printf 'addFilter("crypto-policy-non-compliance-openssl")\naddFilter("non-executable-script")\naddFilter("wrong-script-interpreter")\naddFilter("devel-file-in-non-devel-package")\naddFilter("script-without-shebang")' > ~/.rpmlintrc;
+
+# Validate rpms
+RUN cd ~/rpmbuild/RPMS/x86_64; for i in `ls nmap*.rpm`; do rpmlint $i; if [ "$?" -ne 0 ]; then echo "RPM Lint: FAILED for $i" && exit 1; else echo "RPM Lint: Passed for $i"; fi; done;
+
+# Install rpms
+RUN cd ~/rpmbuild/RPMS/x86_64; dnf -y install nmap*.rpm;
+
+# Run NMAP tool tests
+RUN /usr/bin/nmap -V; sleep 1;
