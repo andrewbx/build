@@ -18,7 +18,7 @@ dnf -y install automake make autoconf gcc gcc-c++ gettext-devel libpcap-devel li
 # Prepare sources and make
 RUN cd ~/rpmbuild/BUILD; \
 wget https://github.com/andrewbx/build/archive/refs/heads/master.zip --no-check-certificate; \
-unzip master.zip build-master/nmap; \
+unzip master.zip 'build-master/nmap/**/*' 'build-master/nmap/*'; \
 mv build-master/nmap .; rm -f master.zip build-master; \
 cp nmap/rpm/nmap-7.92.spec nmap/rpm/nmap.spec; \
 cp nmap/sources/7.92/* ~/rpmbuild/SOURCES/; \
