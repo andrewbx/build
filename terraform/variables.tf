@@ -21,3 +21,17 @@ variable "instance_type" {
   description = "instance type"
   default     = "t2.micro"
 }
+
+variable "digitalocean_access_token" {
+  type        = string
+  description = "DigitalOcean Access Token"
+}
+
+variable "ssh_pvt_key" {
+  type        = string
+  description = "SSH Private key location"
+}
+
+data "digitalocean_ssh_key" "terraform" {
+  name        = "terraform"
+}
