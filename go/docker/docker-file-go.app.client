@@ -1,4 +1,5 @@
 # syntax = docker/dockerfile:1
+# Author: Andrew (andrew@devnull.uk)
 
 ### Build Go Application (Alpine)
 

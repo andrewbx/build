@@ -1,4 +1,5 @@
 # docker-compose.yaml (Client/Server Go Application)
+# Author: Andrew (andrew@devnull.uk)
 
 version: '3'
 
