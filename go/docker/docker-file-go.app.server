@@ -1,0 +1,49 @@
+# syntax = docker/dockerfile:1
+
+### Build Go Application (Alpine)
+
+FROM golang:alpine AS build.go.app.server
+
+RUN apk update && apk add --no-cache sed upx
+WORKDIR /src
+
+COPY src/server/* ./
+COPY certs/server/server.crt ./
+COPY certs/server/server.key ./
+
+# Enable/disable encryption if ssl argument is true/false.
+
+ARG SSL=false
+RUN \
+if [ "$SSL" = "true" ]; then \
+    sed -i 's/\# tlsCert/tlsCert/i; s/\# tlsPrivateKey/tlsPrivateKey/i' ./cfg.yaml; \
+fi
+
+# Build application.
+
+ENV CGO_ENABLED=0
+RUN go build -a --installsuffix cgo --ldflags="-s -w" -o ./go.app.server
+
+# Compress file some.
+# NOTE: For this exercise, purpose is for smaller distribution.
+
+RUN upx --lzma ./go.app.server
+
+### Deploy Image (Minimalistic)
+
+FROM scratch
+WORKDIR /
+
+# Only deploy specific files.
+# NOTE: For this exercise, scratch rather than tight distro works.
+
+COPY --from=build.go.app.server /src/go.app.server /go.app.server
+COPY --from=build.go.app.server /src/cfg.yaml /cfg.yaml
+COPY --from=build.go.app.server /src/server.crt /server.crt
+COPY --from=build.go.app.server /src/server.key /server.key
+
+# Interesting ports for this application.
+
+EXPOSE 8080/tcp
+
+ENTRYPOINT ["/go.app.server", "-c", "cfg.yaml"]

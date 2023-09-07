@@ -1,0 +1,33 @@
+# docker-compose.yaml (Client/Server Go Application)
+
+version: '3'
+
+services:
+  server:
+    image: go.app.server:${TAG:-latest}
+    build:
+      context: .
+      args:
+        DOCKER_BUILDKIT: 1
+        SSL: ${SSL:-false}
+      dockerfile: docker/docker-file-go.app.server
+    ports:
+      - "8080:8080/tcp"
+    container_name: go.app.server
+
+  client:
+    image: go.app.client:${TAG:-latest}
+    build:
+      context: .
+      args:
+        DOCKER_BUILDKIT: 1
+        SSL: ${SSL:-false}
+      dockerfile: docker/docker-file-go.app.client
+    depends_on:
+      - go.app.server
+    network_mode: "host"
+    container_name: go.app.client
+
+networks:
+  default:
+    name: go.app.net
